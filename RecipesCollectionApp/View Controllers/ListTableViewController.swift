@@ -20,6 +20,7 @@ class ListTableViewController: UITableViewController {
     ]
     
     var context: NSManagedObjectContext?
+    var links = [RecipesCollection]()
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -46,7 +47,7 @@ class ListTableViewController: UITableViewController {
             let recipe = NSManagedObject(entity: entity!, insertInto: self.context)
             recipe.setValue(textField?.text, forKey: "recipe")
             
-           // self.savingChanges(message: "Error to store Recipe")
+            // self.savingChanges(message: "Error to store Recipe")
             
         }
         
@@ -57,15 +58,22 @@ class ListTableViewController: UITableViewController {
     }
     
     func loadData(){
-        
         let request: NSFetchRequest<RecipesCollection> = RecipesCollection.fetchRequest()
         do{
             let result = try context!.fetch(request)
-            recipesCollection = 
-                tableView.reloadData()
+            links = result
+            tableView.reloadData()
         }catch{
             fatalError("Error in retrieving recipes")
         }
+    }
+    func saveData(){
+        do{
+            try self.context?.save()
+        }catch{
+            fatalError(error.localizedDescription)
+        }
+        loadData()
     }
     
     override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
@@ -76,65 +84,27 @@ class ListTableViewController: UITableViewController {
     
     override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
         let cell = tableView.dequeueReusableCell(withIdentifier: "webCell", for: indexPath)
-        
-        let recipe = recipesCollection[indexPath.row]
-        cell.textLabel?.text = recipesCollection[indexPath.row](forKey: "recipe") as? String
+        let link = links[indexPath.row]
+        cell.textLabel?.text = link.value(forKey: "recipe") as? String
+        cell.textLabel?.numberOfLines = 0
         cell.selectionStyle = .none
-        
         return cell
     }
     
     
-    /*
-     // Override to support conditional editing of the table view.
-     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
-     // Return false if you do not want the specified item to be editable.
-     return true
-     }
-     */
-    
-    
     override func tableView(_ tableView: UITableView, commit editingStyle: UITableViewCell.EditingStyle, forRowAt indexPath: IndexPath) {
         if editingStyle == .delete {
-            
             let alert = UIAlertController(title: "Delete?", message: "Are you sure upi want to delete?", preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel, handler: nil))
-                
-                alert.addAction(UIAlertAction(title: "Delete", style: .default, handler: { (_) in
-            let recipe = self.recipesCollection[indexPath.row]
-            self.recipesCollection.remove(at: indexPath.row)
-            
-            //self.context?.delete(recipe)
-            tableView.reloadRows(at: [indexPath], with: .automatic)
-            self.saveData()
-        }))
-            
-        self.present(alert, animated: true)
-            
-        } else if editingStyle == .insert {
-            tableView.insertRows(at: [indexPath], with: .automatic)
+            alert.addAction(UIAlertAction(title: "Delete", style: .default, handler: { (_) in
+                self.context?.delete(self.links[indexPath.row])
+                tableView.reloadRows(at: [indexPath], with: .automatic)
+            }))
+            self.present(alert, animated: true)
         }
-        
-        
+        self.saveData()
     }
     
-    
-    
-    
-    /*
-     // Override to support rearranging the table view.
-     override func tableView(_ tableView: UITableView, moveRowAt fromIndexPath: IndexPath, to: IndexPath) {
-     
-     }
-     */
-    
-    /*
-     // Override to support conditional rearranging of the table view.
-     override func tableView(_ tableView: UITableView, canMoveRowAt indexPath: IndexPath) -> Bool {
-     // Return false if you do not want the item to be re-orderable.
-     return true
-     }
-     */
     
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         let storyBoard: UIStoryboard = UIStoryboard(name: "Main", bundle: nil)
